@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" ng-app="bwConfiguratorApp">
 <head>
     <meta charset="UTF-8">
     <title>BrightWall Configurator</title>
@@ -26,11 +26,15 @@
 
     <script src="app.js"></script>
     <script src="services/bwConfiguratorService.js"></script>
-
     <script src="bwConfigurator.js"></script>
+
 
 </head>
 <body>
-Hello World
+<div class="container">
+
+    <div ng-view></div>
+
+</div>
 </body>
 </html>
