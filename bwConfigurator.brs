@@ -23,6 +23,8 @@ Function newBWConfigurator(eventPort As Object, userVariables As Object, bsp as 
 	s.bsp = bsp
 	s.ProcessEvent = bwConfigurator_ProcessEvent
 
+    s.screens = invalid
+
 	s.objectName = "bwConfigurator"
 
 	s.bsp.sign.launchBWConfiguratorAA	=	{ HandleEvent: LaunchBWConfigurator, mVar: s }
@@ -52,11 +54,65 @@ Function bwConfigurator_ProcessEvent(event As Object) as boolean
 		complete = true
 		data = event.GetData()
 		if instr(1, data.name, "BrightSign Web Service") = 1 then
-			print "DATA:"; data
-			textdata = data[ "txt" ]
-			if textdata <> invalid then
-				print "TEXT: "; textdata
+
+			' FIXME - see hacks below
+			' check the address
+			' hack - weird stuff coming back - need to figure it out
+			' also - don't make call on myself - not sure why it doesn't work
+			if instr(1, data.address, "10.1") = 1 and data.address <> "10.1.0.169" then
+
+				print "DATA:"; data
+				textdata = data[ "txt" ]
+				if textdata <> invalid then
+					print "TEXT: "; textdata
+				endif
+
+				' stop
+				ipAddress$ = data.address
+				url = "http://" + ipAddress$ + ":8080/GetCurrentStatus"
+				xfer = CreateObject("roUrlTransfer")
+				xfer.SetUrl(url)
+
+				' FIXME - make this asynchronous
+				status$ = xfer.GetToString()
+				if len(status$) > 0 then
+					currentStatusXML = CreateObject("roXMLElement")
+					currentStatusXML.Parse(status$)
+
+					if lcase(currentStatusXML.isBrightWall.getText()) = "true" then
+
+					    stop
+
+					    videoWallNumRows = currentStatusXML.videoWallNumRows.getText()
+					    videoWallNumColumns = currentStatusXML.videoWallNumColumns.getText()
+					    videoWallRowPosition = currentStatusXML.videoWallRowPosition.getText()
+					    videoWallColumnPosition = currentStatusXML.videoWallColumnPosition.getText()
+
+					    if videoWallNumRows<>"" and videoWallNumColumns<>"" and videoWallRowPosition<>"" and videoWallColumnPosition<>"" then
+					        videoWallNumRows% = int(val(videoWallNumRows))
+					        videoWallNumColumns% = int(val(videoWallNumColumns))
+					        videoWallRowPosition% = int(val(videoWallRowPosition))
+					        videoWallColumnPosition% = int(val(videoWallColumnPosition))
+
+					        if m.screens = invalid then
+					            m.screens = CreateObject("roArray", videoWallNumRows% * videoWallNumColumns%, false)
+					            index% = (videoWallRowPosition% * videoWallNumColumns%) + videoWallRowPosition%
+
+					            screen = {}
+					            screen.ipAddress = ipAddress$
+					            m.screens[index%] = screen
+					        endif
+
+					    endif
+
+					endif
+
+				endif
+    
+
+
 			endif
+
 		endif
 		retval = true
 	end if
